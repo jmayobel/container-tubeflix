@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+  postgres_videos:
+    image: postgres:latest
+    container_name: postgres_videos
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 12345
+      POSTGRES_DB: ASEE_Videos
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data_videos:/var/lib/postgresql/data
+      - ./sql/ASEE_Video.sql:/docker-entrypoint-initdb.d/ASEE_Video.sql
+      - ./sql/ASEE_Comments.sql:/docker-entrypoint-initdb.d/ASEE_Comments.sql
+    networks:
+      - app_network
+
+  postgres_users:
+    image: postgres:latest
+    container_name: postgres_users
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 12345
+      POSTGRES_DB: ASEE_Users
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data_users:/var/lib/postgresql/data
+      - ./sql/ASEE_Users.sql:/docker-entrypoint-initdb.d/ASEE_Users.sql
+    networks:
+      - app_network
+
+  frontend:
+    build:
+      context: ./MicroServ_Frontend
+    container_name: frontend
+    ports:
+      - "8080:8080"  # Exponiendo el puerto 8080 para el frontend
+    depends_on:
+      - postgres_users
+      - postgres_videos
+    networks:
+      - app_network
+
+  usuarios:
+    build:
+      context: ./MicroServ_Usuarios
+    container_name: usuarios
+    ports:
+      - "8081:8081"  # Exponiendo el puerto 8081 para usuarios
+    depends_on:
+      - postgres_users
+    networks:
+      - app_network
+
+  videos:
+    build:
+      context: ./MicroServ_Videos
+    container_name: videos
+    ports:
+      - "8082:8082"  # Exponiendo el puerto 8082 para videos
+    depends_on:
+      - postgres_videos
+    networks:
+      - app_network
+
+  recomendaciones:
+    build:
+      context: ./MicroServ_Recomendaciones
+    container_name: recomendaciones
+    ports:
+      - "8083:8083"  # Exponiendo el puerto 8083 para recomendaciones
+    depends_on:
+      - postgres_videos
+      - postgres_users
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge
+
+volumes:
+  postgres_data_videos:
+  postgres_data_users:
